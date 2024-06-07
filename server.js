@@ -7,9 +7,10 @@ escpos.Network = require('escpos-network');
 const app = express();
 const port = 4000; // or any port of your choice
 app.use(bodyParser.json());
-const originUrl = 'http://localhost:3000';
-const printer_ip_address = '192.168.0.98'
-const printer_port = '9100'
+const originUrl = 'https://web-production-80fc3.up.railway.app';
+function formatter(num) {
+  return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
+}
 
 app.get('/print/:sale_id', async (req, response) => {
   const sale_id = req.params.sale_id;
@@ -23,7 +24,7 @@ app.get('/print/:sale_id', async (req, response) => {
     printReceipt(saleData);
 
     // Send the sale data back as the response
-    response.send(saleData);
+    response.redirect(originUrl);
   } catch (error) {
     console.error(`Error fetching sale with ID ${sale_id}:`, error);
     response.status(500).send('Error fetching sale information');
@@ -33,52 +34,64 @@ app.get('/print/:sale_id', async (req, response) => {
 // Function to print receipt based on sale data
 function printReceipt(saleData) {
   // Create a new printer
-  const printer = new escpos.Network(printer_ip_address, printer_port);
+  const networkDevice = new escpos.Network('192.168.0.98', 9100);
+  const printer = new escpos.Printer(networkDevice);
 
   // Create a new buffer for the receipt content
-  const buffer = new escpos.Screen();
 
   // Add sale details to the receipt
-  buffer
-    .text(`Mijoz: ${saleData.buyer_name.capitalize()}`)
-    .text(`Vaqt: ${new Date(saleData.created_at * 1000).toLocaleString()}`)
-    .text(`ID: ${saleData.id}`)
-    .text(`SMS CLINIC`)
-    .text('-----------------------------------------------');
+  networkDevice.open(async (error) => {
+    printer.font('a');
+    printer.align('ct');
+    printer.style('bu');
+    printer.size(1, 1);
+    printer.text(`SMS CLINIC`);
+    printer.size(0.5, 0.8);
+    printer.tableCustom(
+      [
+        { text:`${new Date(saleData.created_at * 1000).toLocaleString()}`, align:"LEFT", width:0.5 },
+        { text: `№-${saleData.id}`, align:"RIGHT", width:0.5 }
+      ]
+    )
+    printer.align('lt');
+    printer.text(`Bemor: ${saleData.buyer_name}`)
+    printer.text(`Xodim: ${saleData.registrator}`)
+    printer.align('ct');
+    printer.size(0.5, 0.7);
+    printer.drawLine()
+    printer.size(0.5, 0.5);
+    saleData.product_sells.forEach((product, index) => {
+      const total_price = product.amount * product.sell_price;
+      printer.tableCustom(
+        [
+          { text:`${index + 1}-${product.product_name}`, align:"LEFT", width: 0.37 },
+          { text:`${product.amount} * ${formatter(product.sell_price)}`, align:"CENTER", width: 0.38 },
+          { text: `${formatter(total_price)}`, align:"RIGHT", width:0.25 }
+        ]
+      )
+    });
+    printer.drawLine();
+    printer.size(0.5, 0.5);
+    printer.align('RT');
+    printer.text(`Jami: ${formatter(saleData.total_price)}`);
+    printer.text(`${saleData.comment}`);
+    printer.drawLine();
+    printer.align('ct');
+    printer.text(`974455454`);
+    printer.text(`Address: Andijon`);
+    printer.text('');// Add some empty lines for spacing
+    printer.text('');
+    printer.text('');
+    printer.text('');
+    printer.text('');
+    printer.cut();
+    printer.close();
+  })
 
-  // Add product sells to the receipt
-  saleData.product_sells.forEach((product, index) => {
-    const total_price = product.amount * product.sell_price;
-    buffer
-      .text(`${index + 1}. ${product.product_name}`)
-      .text(`${product.amount} * ${product.sell_price} = ${total_price}`);
-  });
 
-  buffer
-    .text('-----------------------------------------------')
-    .text(`Jami: ${saleData.total_price}`)
-    .text(`${saleData.comment}`)
-    .text('-----------------------------------------------')
-    .text(`974455454`)
-    .text(`Address: Andijon`)
-    .text('-----------------------------------------------')
-    .text('') // Add some empty lines for spacing
-    .text('')
-    .text('')
-    .text('')
-    .text('')
-    .text('')
-    .text('')
-    .text('')
-    .text('');
+  // Add product sells to the receip
 
-  // Connect to the printer
-  printer.open();
 
-  // Send the receipt to the printer
-  printer
-    .send(buffer)
-    .close();
 }
 
 app.listen(port, () => {
