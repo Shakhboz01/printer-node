@@ -1,71 +1,84 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const axios = require('axios');
 const escpos = require('escpos');
 escpos.Network = require('escpos-network');
 
 const app = express();
 const port = 4000; // or any port of your choice
-
 app.use(bodyParser.json());
+const originUrl = 'http://localhost:3000';
 
-// Change this to your printer's IP address and port
-
-const printerOptions = {
-  type: 'network',
-  interface: '192.168.100.50',
-  port: 9100 // Default port for most Ethernet printers
-};
-
-app.post('/print-receipt', async (req, res) => {
-  console.log('Started get meee')
-  const sale = req.body.sale;
-
-  const networkDevice = new escpos.Network('192.168.1.40', 9100);
-  const options = { encoding: "GB18030" }
-  const printer = new escpos.Printer(networkDevice, options);
+app.get('/print/:sale_id', async (req, response) => {
+  const sale_id = req.params.sale_id;
+  const url = `${originUrl}/api/v1/sales/${sale_id}`;
 
   try {
-    networkDevice.open(async (error) => {
-      if (error) {
-        res.status(500).send('Printer connection error');
-        return;
-      }
+    // Fetch sale data from the API
+    const apiResponse = await axios.get(url);
+    const saleData = apiResponse.data;
 
-      printer.align('CT');
-      printer.style('B');
-      printer.size(2, 2);
-      printer.text(`\n${process.env.COMPANY_NAME}\n`);
-      printer.style('NORMAL');
-      printer.size(1, 1);
-      printer.drawLine();
-      printer.text(`Mijoz: ${sale.buyer.name}\n`);
-      printer.text(`${new Date().toLocaleString()}\n`);
-      printer.text(`ID: ${sale.id}\n`);
-      printer.drawLine();
+    // Print receipt
+    printReceipt(saleData);
 
-      sale.product_sells.forEach((item, index) => {
-        const total_price = item.amount * item.sell_price;
-        printer.text(`${index + 1}. ${item.sell_by_piece ? item.product.name : item.pack.name}\n`);
-        printer.align('RT');
-        printer.text(`${item.amount} * ${item.sell_price.toFixed(2)} = ${total_price.toFixed(2)}\n`);
-        printer.align('LT');
-      });
-
-      printer.drawLine();
-      printer.text(`Jami: ${sale.total_price.toFixed(2)}\n`);
-      printer.text(`${sale.comment}\n`);
-      printer.drawLine();
-      printer.text(`${process.env.COMPANY_PHONE_NUMBER}\n`);
-      printer.text(`Address: ${process.env.COMPANY_ADDRESS}\n`);
-      printer.cut();
-      printer.close();
-    });
-
-    res.status(200).send('Print job submitted');
-  } catch (err) {
-    res.status(500).send('Error printing receipt');
+    // Send the sale data back as the response
+    response.send(saleData);
+  } catch (error) {
+    console.error(`Error fetching sale with ID ${sale_id}:`, error);
+    response.status(500).send('Error fetching sale information');
   }
 });
+
+// Function to print receipt based on sale data
+function printReceipt(saleData) {
+  // Create a new printer
+  const printer = new escpos.Network('printer_ip_address', 'printer_port');
+
+  // Create a new buffer for the receipt content
+  const buffer = new escpos.Screen();
+
+  // Add sale details to the receipt
+  buffer
+    .text(`Mijoz: ${saleData.buyer_name.capitalize()}`)
+    .text(`Vaqt: ${new Date(saleData.created_at * 1000).toLocaleString()}`)
+    .text(`ID: ${saleData.id}`)
+    .text(`SMS CLINIC`)
+    .text('-----------------------------------------------');
+
+  // Add product sells to the receipt
+  saleData.product_sells.forEach((product, index) => {
+    const total_price = product.amount * product.sell_price;
+    buffer
+      .text(`${index + 1}. ${product.product_name}`)
+      .text(`${product.amount} * ${product.sell_price} = ${total_price}`);
+  });
+
+  buffer
+    .text('-----------------------------------------------')
+    .text(`Jami: ${saleData.total_price}`)
+    .text(`${saleData.comment}`)
+    .text('-----------------------------------------------')
+    .text(`974455454`)
+    .text(`Address: Andijon`)
+    .text('-----------------------------------------------')
+    .text('') // Add some empty lines for spacing
+    .text('')
+    .text('')
+    .text('')
+    .text('')
+    .text('')
+    .text('')
+    .text('')
+    .text('');
+
+  // Connect to the printer
+  printer.open();
+
+  // Send the receipt to the printer
+  printer
+    .send(buffer)
+    .close();
+}
 
 app.listen(port, () => {
   console.log(`Printer service listening at http://localhost:${port}`);
