@@ -8,11 +8,12 @@ const app = express();
 const port = 4000; // or any port of your choice
 app.use(bodyParser.json());
 const originUrl = 'http://localhost:3000';
+const printer_ip_address = '192.168.0.98'
+const printer_port = '9100'
 
 app.get('/print/:sale_id', async (req, response) => {
   const sale_id = req.params.sale_id;
   const url = `${originUrl}/api/v1/sales/${sale_id}`;
-
   try {
     // Fetch sale data from the API
     const apiResponse = await axios.get(url);
@@ -32,7 +33,7 @@ app.get('/print/:sale_id', async (req, response) => {
 // Function to print receipt based on sale data
 function printReceipt(saleData) {
   // Create a new printer
-  const printer = new escpos.Network('printer_ip_address', 'printer_port');
+  const printer = new escpos.Network(printer_ip_address, printer_port);
 
   // Create a new buffer for the receipt content
   const buffer = new escpos.Screen();
