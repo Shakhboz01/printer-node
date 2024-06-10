@@ -7,8 +7,8 @@ escpos.Network = require('escpos-network');
 const app = express();
 const port = 4000; // or any port of your choice
 app.use(bodyParser.json());
-const originUrl = 'http://localhost:3000';
-const printer_ip_address = '192.168.0.98'
+const originUrl = 'https://web-production-80fc3.up.railway.app';
+const printer_ip_address = '192.168.123.100'
 const printer_port = '9100'
 
 app.get('/print/:sale_id', async (req, response) => {
@@ -59,8 +59,8 @@ function printReceipt(saleData) {
     .text(`Jami: ${saleData.total_price}`)
     .text(`${saleData.comment}`)
     .text('-----------------------------------------------')
-    .text(`974455454`)
-    .text(`Address: Andijon`)
+    .text(`93 414 00 30`)
+    .text(`Address: Andijon shahar Shaxid tepa 1-uy`)
     .text('-----------------------------------------------')
     .text('') // Add some empty lines for spacing
     .text('')
