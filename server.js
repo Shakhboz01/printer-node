@@ -41,7 +41,7 @@ app.get('/print/:sale_id', async (req, response) => {
 // Function to print receipt based on sale data
 function printReceipt(saleData) {
   const device = new escpos.USB();
-  const options = { encoding: "Win1251" };
+  const options = { encoding: "GB18030" };
   const printer = new escpos.Printer(device, options);
 
   device.open(function(error) {
