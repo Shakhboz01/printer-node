@@ -2,6 +2,7 @@
 // comment out usb.on from node_modules/escpos-usb/index.js:52-59
 
 const express = require('express');
+const cors = require('cors')
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const escpos = require('escpos');
@@ -10,7 +11,17 @@ const usb = require('usb');
 
 const app = express();
 const port = 4000; // or any port of your choice
+const corsOptions = {
+  // origin:'https://abc.onrender.com',
+  AccessControlAllowOrigin: '*',
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
+}
+
+app.use(cors(corsOptions))
+
 app.use(bodyParser.json());
+
 
 const companyName = 'SMS CLINIC'
 const companyAddress = 'Fisdavsiy'
@@ -21,6 +32,49 @@ const footerText = 'Спасибо за покупку'
 function formatter(num) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
 }
+
+app.post('/printer_queue', (req,res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  const number = req.body.number;
+  const printer_object_name = req.body.printer_object_name
+  const comment = req.body.comment
+
+  const device = new escpos.USB();
+  const options = { encoding: "GB18030" };
+  const printer = new escpos.Printer(device, options);
+
+
+  device.open(function(error) {
+    if (error) {
+      console.error(error);
+      return;
+    }
+    printer.font('a');
+    printer.align('ct');
+    printer.style('bu');
+    printer.size(1, 1)
+           .text('Navbat raqami:')
+           .text('')
+    printer.size(9, 8.8)
+           .text(`${number}`)
+           .text('');
+    printer.size(0.5, 0.8);
+
+    printer.align('ct');
+    printer.size(1.5, 1.7);
+    printer
+      .text(comment)
+      .text(printer_object_name)
+      .text('')
+      .text('')
+      .text('')
+      .text('');
+    printer.cut();
+    printer.close();
+  })
+
+})
 
 app.get('/print/:sale_id', async (req, response) => {
   const sale_id = req.params.sale_id;
