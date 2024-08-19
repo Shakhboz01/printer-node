@@ -12,10 +12,10 @@ const app = express();
 const port = 4000; // or any port of your choice
 app.use(bodyParser.json());
 
-const companyName = 'SMS CLINIC'
-const companyAddress = 'Fisdavsiy'
-const companyPhoneNumber = '97 111 11 11'
-const originUrl = 'https://web-production-80fc3.up.railway.app';
+const companyName = 'PO BRATSKI'
+const companyAddress = 'Rudakiy kochasi 84-uy 59 xonadon'
+const companyPhoneNumber = '+998 95 091 33 34'
+const originUrl = 'http://localhost:3000';
 const footerText = 'Спасибо за покупку'
 
 function formatter(num) {
@@ -31,7 +31,7 @@ app.get('/print/:sale_id', async (req, response) => {
     const saleData = apiResponse.data;
 
     printReceipt(saleData);
-    response.redirect(`${originUrl}/sales`);
+    response.redirect(`${originUrl}`);
   } catch (error) {
     console.error(`Error fetching sale with ID ${sale_id}:`, error);
     response.status(500).send('Error fetching sale information');
@@ -51,10 +51,11 @@ function printReceipt(saleData) {
     }
     printer.font('a');
     printer.align('ct');
-    printer.style('bu');
+    printer.style('bu'); // Apply bold and underline
     printer.size(1, 1)
            .text(`${companyName}`)
            .text('');
+    printer.style('normal'); // Reset to normal style
     printer.size(0.5, 0.8);
     printer.tableCustom(
       [
@@ -62,36 +63,46 @@ function printReceipt(saleData) {
         { text: `# ${saleData.id}`, align:"RIGHT", width:0.5 }
       ]
     )
-    printer.align('lt');
-    printer
-    .text(`Клиент: ${saleData.buyer_name}`)
-    .text(`Кассир: ${saleData.registrator}`);
+    printer.tableCustom(
+      [
+        { text: 'Кассир:', style: 'b', align:"LEFT", width:0.5 },
+        { text: `${saleData.registrator}`, align:"RIGHT", width:0.5 }
+      ]
+    )
+    printer.style('b')
+    printer.text(`${saleData.comment}`)
+    printer.style('normal')
 
-    printer.align('ct');
+
+    printer.align('ct')
+            .drawLine();
     printer.size(0.5, 0.7);
-    printer.drawLine();
+    printer.text('');
+    printer.text('');
     printer.size(0.5, 0.5);
     // Add product sells to the receipt
     saleData.product_sells.forEach((product, index) => {
       const total_price = product.amount * product.sell_price;
-      printer.tableCustom(
-        [
-          { text:`${index + 1}-${product.product_name}`, align:"LEFT", width: 0.37 },
-          { text:`${product.amount} * ${formatter(product.sell_price)}`, align:"CENTER", width: 0.38 },
-          { text: `${formatter(total_price)}`, align:"RIGHT", width:0.25 }
-        ]
-      )
+      printer.align('LT')
+      printer.text(product.product_name)
+      printer.align('RT')
+      printer.text(`${product.amount} * ${formatter(product.sell_price)} = ${formatter(total_price)}`)
+      printer.align('CT')
+      printer.drawLine();
     });
-    printer.drawLine();
+
     printer.size(0.5, 0.5);
     printer.align('RT');
+    printer.style('b'); // Apply bold and underline
+
     printer
-      .text(`Итого: ${formatter(saleData.total_price)}`)
-      .text(`${saleData.comment}`)
-      .drawLine();
+      .text(`ИТОГО: ${formatter(saleData.total_price)}`);
+
+      
 
     printer
       .align('ct')
+      .drawLine()
       .text(companyPhoneNumber)
       .text(`Адрес: ${companyAddress}`)
       .text('')
@@ -102,8 +113,9 @@ function printReceipt(saleData) {
       .text('')
     printer.cut();
     printer.close();
-  })
+  });
 }
+
 
 app.listen(port, () => {
   console.log(`Printer service listening at http://localhost:${port}`);
