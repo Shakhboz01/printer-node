@@ -65,6 +65,8 @@ app.post('/printer_queue', (req,res) => {
     printer.size(1.5, 1.7);
     printer
       .text(comment)
+      .text('');
+    printer.size(0.9, 0.9)
       .text(printer_object_name)
       .text('')
       .text('')
