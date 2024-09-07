@@ -12,11 +12,12 @@ const app = express();
 const port = 4000; // or any port of your choice
 app.use(bodyParser.json());
 
-const companyName = 'SMS CLINIC'
-const companyAddress = 'Fisdavsiy'
-const companyPhoneNumber = '97 111 11 11'
-const originUrl = 'https://web-production-80fc3.up.railway.app';
-const footerText = 'Спасибо за покупку'
+const companyName = 'CRYSTAL MED HEALTHCARE'
+const companyAddress = 'Хўжаобод тумани Sanoatchilar MFY'
+const companyPhoneNumber = '+99888 978 00 03'
+const companyPhoneNumber2 = '+99855 201 00 03'
+const originUrl = 'https://samo-med-production.up.railway.app';
+const footerText = 'Sizga salomatlik tilaymiz!'
 
 function formatter(num) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
@@ -64,8 +65,8 @@ function printReceipt(saleData) {
     )
     printer.align('lt');
     printer
-    .text(`Клиент: ${saleData.buyer_name}`)
-    .text(`Кассир: ${saleData.registrator}`);
+    .text(`Bemor: ${saleData.buyer_name}`)
+    .text(`Kassir: ${saleData.registrator}`);
 
     printer.align('ct');
     printer.size(0.5, 0.7);
@@ -86,14 +87,15 @@ function printReceipt(saleData) {
     printer.size(0.5, 0.5);
     printer.align('RT');
     printer
-      .text(`Итого: ${formatter(saleData.total_price)}`)
+      .text(`Jami: ${formatter(saleData.total_price)}`)
       .text(`${saleData.comment}`)
       .drawLine();
 
     printer
       .align('ct')
       .text(companyPhoneNumber)
-      .text(`Адрес: ${companyAddress}`)
+      .text(companyPhoneNumber2)
+      .text(`Manzil: ${companyAddress}`)
       .text('')
       .text(footerText)
       .text('')
