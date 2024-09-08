@@ -23,11 +23,12 @@ app.use(cors(corsOptions))
 app.use(bodyParser.json());
 
 
-const companyName = 'SMS CLINIC'
-const companyAddress = 'Fisdavsiy'
-const companyPhoneNumber = '97 111 11 11'
-const originUrl = 'https://web-production-80fc3.up.railway.app';
-const footerText = 'Спасибо за покупку'
+const companyName = 'GIPOTETALOGIYA'
+const companyAddress = 'Dahbed ko\'chasi'
+const companyPhoneNumber = ''
+const originUrl = 'https://infeksionniy-production.up.railway.app';
+// const originUrl = 'http://localhost:5000';
+const footerText = 'Sizga salomatlik tilaymiz'
 
 function formatter(num) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
@@ -39,6 +40,7 @@ app.post('/printer_queue', (req,res) => {
   const number = req.body.number;
   const printer_object_name = req.body.printer_object_name
   const comment = req.body.comment
+  const doctorUserId = req.body.doctorUserId
 
   const device = new escpos.USB();
   const options = { encoding: "GB18030" };
@@ -76,6 +78,12 @@ app.post('/printer_queue', (req,res) => {
     printer.close();
   })
 
+  axios.post(`${originUrl}/queue_histories`, {
+    queue_history: {
+      comment: comment,
+      user_id: doctorUserId
+    }
+  })
 })
 
 app.get('/print/:sale_id', async (req, response) => {
@@ -120,8 +128,7 @@ function printReceipt(saleData) {
     )
     printer.align('lt');
     printer
-    .text(`Клиент: ${saleData.buyer_name}`)
-    .text(`Кассир: ${saleData.registrator}`);
+    .text(`Bemor: ${saleData.buyer_name}`);
 
     printer.align('ct');
     printer.size(0.5, 0.7);
@@ -142,14 +149,14 @@ function printReceipt(saleData) {
     printer.size(0.5, 0.5);
     printer.align('RT');
     printer
-      .text(`Итого: ${formatter(saleData.total_price)}`)
+      .text(`Jami: ${formatter(saleData.total_price)}`)
       .text(`${saleData.comment}`)
       .drawLine();
 
     printer
       .align('ct')
       .text(companyPhoneNumber)
-      .text(`Адрес: ${companyAddress}`)
+      .text(`Manzil: ${companyAddress}`)
       .text('')
       .text(footerText)
       .text('')
