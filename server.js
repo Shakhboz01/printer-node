@@ -23,10 +23,10 @@ app.use(cors(corsOptions))
 app.use(bodyParser.json());
 
 
-const companyName = 'GIPOTETALOGIYA'
-const companyAddress = 'Dahbed ko\'chasi'
-const companyPhoneNumber = ''
-const originUrl = 'https://infeksionniy-production.up.railway.app';
+const companyName = 'BEST KLINIKA'
+const companyAddress = 'IBN SINO KOCHASI, 21 DOM, 11-MANZILGOX'
+const companyPhoneNumber = '+99888-455-53-33'
+const originUrl = 'http://localhost:3000';
 // const originUrl = 'http://localhost:5000';
 const footerText = 'Sizga salomatlik tilaymiz'
 
@@ -54,7 +54,7 @@ app.post('/printer_queue', (req,res) => {
     }
     printer.font('a');
     printer.align('ct');
-    printer.style('bu');
+    printer.style('normal');
     printer.size(1, 1)
            .text('Navbat raqami:')
            .text('')
@@ -86,7 +86,7 @@ app.post('/printer_queue', (req,res) => {
   })
 })
 
-app.get('/print/:sale_id', async (req, response) => {
+app.post('/print/:sale_id', async (req, response) => {
   const sale_id = req.params.sale_id;
   const url = `${originUrl}/api/v1/sales/${sale_id}`;
   try {
@@ -115,7 +115,7 @@ function printReceipt(saleData) {
     }
     printer.font('a');
     printer.align('ct');
-    printer.style('bu');
+    printer.style('b');
     printer.size(1, 1)
            .text(`${companyName}`)
            .text('');
@@ -123,7 +123,7 @@ function printReceipt(saleData) {
     printer.tableCustom(
       [
         { text:`${new Date(saleData.created_at * 1000).toLocaleString()}`, align:"LEFT", width:0.5 },
-        { text: `# ${saleData.id}`, align:"RIGHT", width:0.5 }
+        { text: `# ${saleData.id}`, align:"CENTER", width:0.5 }
       ]
     )
     printer.align('lt');
@@ -133,21 +133,21 @@ function printReceipt(saleData) {
     printer.align('ct');
     printer.size(0.5, 0.7);
     printer.drawLine();
-    printer.size(0.5, 0.5);
+    printer.size(0.5, 0.5)
+    printer.style('');
     // Add product sells to the receipt
     saleData.product_sells.forEach((product, index) => {
       const total_price = product.amount * product.sell_price;
-      printer.tableCustom(
-        [
-          { text:`${index + 1}-${product.product_name}`, align:"LEFT", width: 0.37 },
-          { text:`${product.amount} * ${formatter(product.sell_price)}`, align:"CENTER", width: 0.38 },
-          { text: `${formatter(total_price)}`, align:"RIGHT", width:0.25 }
-        ]
-      )
+      printer.align('LT')
+             .text(`${index + 1}-${product.product_name}`)
+             .align('RT')
+             .text(`${product.amount} * ${formatter(product.sell_price)} = ${formatter(total_price)}`)
+             .drawLine();
+
     });
-    printer.drawLine();
     printer.size(0.5, 0.5);
-    printer.align('RT');
+    printer.align('RT')
+           .style('b')
     printer
       .text(`Jami: ${formatter(saleData.total_price)}`)
       .text(`${saleData.comment}`)
