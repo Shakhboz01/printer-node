@@ -2,6 +2,7 @@
 // comment out usb.on from node_modules/escpos-usb/index.js:52-59
 
 const express = require('express');
+const cors = require('cors')
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const escpos = require('escpos');
@@ -10,19 +11,84 @@ const usb = require('usb');
 
 const app = express();
 const port = 4000; // or any port of your choice
+const corsOptions = {
+  // origin:'https://abc.onrender.com',
+  AccessControlAllowOrigin: '*',
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE'
+}
+
+app.use(cors(corsOptions))
+
 app.use(bodyParser.json());
 
-const companyName = 'SMS CLINIC'
-const companyAddress = 'Fisdavsiy'
-const companyPhoneNumber = '97 111 11 11'
-const originUrl = 'https://web-production-80fc3.up.railway.app';
-const footerText = 'Спасибо за покупку'
+
+const companyName = 'BEST KLINIKA'
+const companyAddress = 'IBN SINO KOCHASI, 21 DOM, 11-MANZILGOX'
+const companyAddress2 = 'IBN SINO KOCHASI, 21 DOM, 11-MANZILGOX'
+const companyPhoneNumber = '+99888-455-53-33'
+const companyPhoneNumber2 = '+99897-350-97-97'
+const originUrl = 'http://localhost:3000';
+// const originUrl = 'http://localhost:5000';
+const footerText = 'SIZGA SALOMATLIK TILAYMIZ'
 
 function formatter(num) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
 }
 
-app.get('/print/:sale_id', async (req, response) => {
+app.post('/printer_queue', (req,res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+
+  const number = req.body.number;
+  const printer_object_name = req.body.printer_object_name
+  const comment = req.body.comment
+  const doctorUserId = req.body.doctorUserId
+
+  const device = new escpos.USB();
+  const options = { encoding: "GB18030" };
+  const printer = new escpos.Printer(device, options);
+
+
+  device.open(function(error) {
+    if (error) {
+      console.error(error);
+      return;
+    }
+    printer.font('a');
+    printer.align('ct');
+    printer.style('normal');
+    printer.size(1, 1)
+           .text('Navbat raqami:')
+           .text('')
+    printer.size(9, 8.8)
+           .text(`${number}`)
+           .text('');
+    printer.size(0.5, 0.8);
+
+    printer.align('ct');
+    printer.size(1.5, 1.7);
+    printer
+      .text(comment)
+      .text('');
+    printer.size(0.9, 0.9)
+      .text(printer_object_name)
+      .text('')
+      .text('')
+      .text('')
+      .text('');
+    printer.cut();
+    printer.close();
+  })
+
+  axios.post(`${originUrl}/queue_histories`, {
+    queue_history: {
+      comment: comment,
+      user_id: doctorUserId
+    }
+  })
+})
+
+app.post('/print/:sale_id', async (req, response) => {
   const sale_id = req.params.sale_id;
   const url = `${originUrl}/api/v1/sales/${sale_id}`;
   try {
@@ -52,50 +118,68 @@ function printReceipt(saleData) {
     printer.font('a');
     printer.align('ct');
     printer.style('bu');
-    printer.size(1, 1)
+    printer.size(1.3, 1)
            .text(`${companyName}`)
            .text('');
-    printer.size(0.5, 0.8);
+    printer.size(0.5, 0.6);
     printer.tableCustom(
       [
-        { text:`${new Date(saleData.created_at * 1000).toLocaleString()}`, align:"LEFT", width:0.5 },
-        { text: `# ${saleData.id}`, align:"RIGHT", width:0.5 }
+        { text:`${new Date().toLocaleString('en-US', {
+          timeZone: 'Asia/Tashkent',
+          hour12: false,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })}`, align:"LEFT", width:0.5 },
+        { text: `Stol: ${saleData.table_number}`, align:"CENTER", width:0.5 }
       ]
     )
-    printer.align('lt');
-    printer
-    .text(`Клиент: ${saleData.buyer_name}`)
-    .text(`Кассир: ${saleData.registrator}`);
+    printer.align('lt').text('');
+    printer.text(`Ofitsiant: ${saleData.registrator}`)
+           .text('');
 
     printer.align('ct');
-    printer.size(0.5, 0.7);
     printer.drawLine();
-    printer.size(0.5, 0.5);
+    printer.size(0.5, 0.5)
+    printer.style('');
     // Add product sells to the receipt
     saleData.product_sells.forEach((product, index) => {
       const total_price = product.amount * product.sell_price;
-      printer.tableCustom(
-        [
-          { text:`${index + 1}-${product.product_name}`, align:"LEFT", width: 0.37 },
-          { text:`${product.amount} * ${formatter(product.sell_price)}`, align:"CENTER", width: 0.38 },
-          { text: `${formatter(total_price)}`, align:"RIGHT", width:0.25 }
-        ]
-      )
+      printer.align('LT')
+             .style('b')
+             .text(`${index + 1}-${product.product_name}`)
+             .align('RT')
+             .text(`${product.amount} * ${formatter(product.sell_price)} = ${formatter(total_price)}`)
+             .style('')
+             .drawLine();
+
     });
-    printer.drawLine();
-    printer.size(0.5, 0.5);
-    printer.align('RT');
+    printer.size(0.52, 0.6);
+    printer.align('RT')
+           .style('b')
     printer
-      .text(`Итого: ${formatter(saleData.total_price)}`)
+      .text(`Jami: ${formatter(saleData.total_price)}`)
       .text(`${saleData.comment}`)
       .drawLine();
 
     printer
       .align('ct')
-      .text(companyPhoneNumber)
-      .text(`Адрес: ${companyAddress}`)
+      .text(`MANZIL:`)
+      .text(companyAddress)
+      .text(companyAddress2)
       .text('')
+      .text('')
+      .text('MALUMOT UCHUN:')
+      .text(companyPhoneNumber)
+      .text(companyPhoneNumber2)
+      .text('')
+      .size(0.54, 0.5)
       .text(footerText)
+      .text('')
+      .text('')
       .text('')
       .text('')
       .text('')
