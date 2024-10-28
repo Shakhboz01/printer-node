@@ -26,9 +26,10 @@ app.use(bodyParser.json());
 const companyName = 'BEST KLINIKA'
 const companyAddress = 'IBN SINO KOCHASI, 21 DOM, 11-MANZILGOX'
 const companyPhoneNumber = '+99888-455-53-33'
+const companyPhoneNumber2 = '+99897-350-97-97'
 const originUrl = 'http://localhost:3000';
 // const originUrl = 'http://localhost:5000';
-const footerText = 'Sizga salomatlik tilaymiz'
+const footerText = 'SIZGA SALOMATLIK TILAYMIZ'
 
 function formatter(num) {
   return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1 ');
@@ -115,23 +116,31 @@ function printReceipt(saleData) {
     }
     printer.font('a');
     printer.align('ct');
-    printer.style('b');
-    printer.size(1, 1)
+    printer.style('bu');
+    printer.size(1.3, 1)
            .text(`${companyName}`)
            .text('');
-    printer.size(0.5, 0.8);
+    printer.size(0.5, 0.6);
     printer.tableCustom(
       [
-        { text:`${new Date(saleData.created_at * 1000).toLocaleString()}`, align:"LEFT", width:0.5 },
+        { text:`${new Date().toLocaleString('en-US', {
+          timeZone: 'Asia/Tashkent',
+          hour12: false,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })}`, align:"LEFT", width:0.5 },
         { text: `# ${saleData.id}`, align:"CENTER", width:0.5 }
       ]
     )
-    printer.align('lt');
-    printer
-    .text(`Bemor: ${saleData.buyer_name}`);
+    printer.align('lt').text('');
+    printer.text(`Bemor: ${saleData.buyer_name}`)
+           .text('');
 
     printer.align('ct');
-    printer.size(0.5, 0.7);
     printer.drawLine();
     printer.size(0.5, 0.5)
     printer.style('');
@@ -139,13 +148,15 @@ function printReceipt(saleData) {
     saleData.product_sells.forEach((product, index) => {
       const total_price = product.amount * product.sell_price;
       printer.align('LT')
+             .style('b')
              .text(`${index + 1}-${product.product_name}`)
              .align('RT')
              .text(`${product.amount} * ${formatter(product.sell_price)} = ${formatter(total_price)}`)
+             .style('')
              .drawLine();
 
     });
-    printer.size(0.5, 0.5);
+    printer.size(0.52, 0.6);
     printer.align('RT')
            .style('b')
     printer
@@ -155,10 +166,19 @@ function printReceipt(saleData) {
 
     printer
       .align('ct')
-      .text(companyPhoneNumber)
-      .text(`Manzil: ${companyAddress}`)
+      .text(`MANZIL:`)
+      .text('TERMIZ SHAXAR')
+      .text(companyAddress)
       .text('')
+      .text('')
+      .text('MALUMOT UCHUN:')
+      .text(companyPhoneNumber)
+      .text(companyPhoneNumber2)
+      .text('')
+      .size(0.54, 0.5)
       .text(footerText)
+      .text('')
+      .text('')
       .text('')
       .text('')
       .text('')
